@@ -1,6 +1,4 @@
-from astro_constants import *
 
-import numpy as np
 
 ## main imports
 import numpy as np
@@ -37,7 +35,7 @@ from matplotlib.ticker import FormatStrFormatter
 
 
 
-class JSONAnalyzer:
+class read_json_file:
     
     def __init__(self, file_name, binning=['3-days','weekly','monthly'], index=['fixed','free']):
         self.file_name = file_name
@@ -50,7 +48,6 @@ class JSONAnalyzer:
         self.df = self.create_dataframe()
         
     def open_file(self, index=['fixed','free']):
-        self.path_4lac_dr3_catalog = '../4LAC_catalog_generator_v3/resulting_catalogs/agn_pop_4lac_dr3.ecsv'
         self.path_downloaded_lc_catalog = '../4LAC_lightcurve_downloader_v3/resulting_catalogs/input_lightcurve_downloads_v3'
         
         if self.index == 'fixed':
@@ -63,6 +60,7 @@ class JSONAnalyzer:
                 return open(f'{self.path_downloaded_lc_catalog}/{self.path_folder}/monthly_ts1_fixedindex_lightcurves/{self.file_name}')
             else:
                 raise ValueError("Invalid binning option. Choose from '3-days', 'weekly', or 'monthly'.")
+        
         elif self.index == 'free':
             self.path_folder = 'free_indexed_lightcurves'
             if self.binning == '3-days':
@@ -76,7 +74,7 @@ class JSONAnalyzer:
             
     def load_data(self):
         self.name = self.file_name[5:-5]
-        ## accessing instance variable
+        
         data = self.data
         ## ts = test statistics
         self.time_ts = np.array(data['ts'])[:, 0]      # [i][0]
@@ -178,144 +176,4 @@ class JSONAnalyzer:
         
         return self.df_free
 
-    def removing_outliers(self):
-        dataframe = self.df
-        df_free = self.load_free_dataframe()
-
-        indices_to_remove_fit = (dataframe['fit_convergence'] != 0) # fit_convergence != 0
-        indices_to_remove_flux_error = (dataframe['flux_error'] == 0) # flux_error == 0
-        indices_to_remove = indices_to_remove_fit | indices_to_remove_flux_error
-
-        dataframe.loc[indices_to_remove, ['flux', 'flux_upper_limits', 'flux_error']] = np.nan
-
-        indices_to_replaceUL_ts = (dataframe['values_ts'] < 10) # TS < 10 -> point should be an UL
-        dataframe.loc[indices_to_replaceUL_ts, 'flux_upper_limits'] = dataframe.loc[indices_to_replaceUL_ts, 'flux']
-        dataframe.loc[indices_to_replaceUL_ts, ['flux', 'flux_error']] = np.nan
-        
-        ## Remove bins with exposure < 1e7 cm^2 s
-        exposure = dataframe['flux'] / (dataframe['flux_error'] ** 2)
-        indices_to_remove_exposure = (exposure < 1e7)
-        dataframe.loc[indices_to_remove_exposure, ['flux', 'flux_upper_limits', 'flux_error']] = np.nan
-
-        
-        # indices_to_replacefree_dlogl = (dataframe['dlogl'] > 5) # 2*dlogl > 10 -> should have free index
-        # dataframe.loc[indices_to_replacefree_dlogl, 'flux'] = df_free.loc[indices_to_replacefree_dlogl, 'flux']
-        # dataframe.loc[indices_to_replacefree_dlogl, 'flux_error'] = df_free.loc[indices_to_replacefree_dlogl, 'flux_error']
-        
-        # print(f'{len(indices_to_replacefree_dlogl)} points were replaced in {self.name} fixed -> free index!')
-        
-        return dataframe
-
-    def calculate_variability(self):
-        dictionary = self.data_dict
-        dataframe = self.df
-        
-        filtered_df = self.removing_outliers()
-        
-        ## selecting only non-NaN values from the DataFrame for flux and flux_error
-        flux_non_nan_values = filtered_df.dropna(subset=['flux'])
-        flux_error_non_nan_values = filtered_df.dropna(subset=['flux_error'])
-        flux_ULs_non_nan_values = filtered_df.dropna(subset=['flux_upper_limits'])
-
-        ## get the indexes (time) of the non-NaN values
-        self.time_flux_non_nan = flux_non_nan_values.index
-        self.time_flux_error_non_nan = flux_error_non_nan_values.index
-
-        self.selected_flux_values = flux_non_nan_values['flux']
-        self.selected_flux_error_values = flux_error_non_nan_values['flux_error']
-
-        ##### normalized excess variance #####
-        
-        F_av = np.average(self.selected_flux_values)  # simple average
-        n = len(self.selected_flux_values)
-        
-        if n != 1:
-            s_squared = (1 / (n - 1)) * sum((F_i - F_av)**2 for F_i in self.selected_flux_values)
-        else:
-            s_squared = (1 / (n)) * sum((F_i - F_av)**2 for F_i in self.selected_flux_values)
-            print(f'\nthe source {self.name} has only 1 flux point selected!')
-            print(f'\n -> size ULs: {len(self.flux_upper_limits)}')
-            print(f' -> size flux points: {len(self.flux)}')
-            print(f'\n -> AFTER selection, size ULs: {len(flux_ULs_non_nan_values)}, size flux: {len(flux_non_nan_values)}')
-            
-        if n != 0:
-            mse = (1/n) * sum(sigma_i**2 for sigma_i in self.selected_flux_error_values)
-        else:
-            n=1
-            mse = (1/n) * sum(sigma_i**2 for sigma_i in self.selected_flux_error_values)
-            print(f'\nthe source {self.name} has NO flux points selected!')
-            print(f'\n -> size ULs: {len(self.flux_upper_limits)}')
-            print(f' -> size flux points: {len(self.flux)}')
-            print(f'\n -> AFTER selection, size ULs: {len(flux_ULs_non_nan_values)}, size flux: {len(flux_non_nan_values)}')
-            
-        excess_variance = s_squared - mse
-        
-        self.normalized_excess_variance = excess_variance / F_av**2
-        
-        if n != 0:
-            term1 = np.sqrt(2/n) * ( mse / (F_av**2) )
-            term2 = np.sqrt(mse/n) * ( 2 / F_av )
-        else:
-            n=1
-            term1 = np.sqrt(2/n) * ( mse / (F_av**2) )
-            term2 = np.sqrt(mse/n) * ( 2 / F_av )
-            print(f'the source {self.name} has NO flux points selected! DO NOT trust this value!')
-        
-        self.unc_normalized_excess_variance = np.sqrt( (term1)**2 + ( (term2)**2 * self.normalized_excess_variance) )
-        
-        ##### Fractional Variability #####
-        
-        self.frac_variability = np.sqrt( max(self.normalized_excess_variance, 0) )  # 4FGL paper: max(term_max, 0)
-        
-        if n != 0:
-            factor1 = np.sqrt( 1 / (2*n) ) * mse / ( F_av**2 )
-            factor2 = np.sqrt( mse / n ) * ( 1 / F_av )
-        else:
-            n=1
-            factor1 = np.sqrt( 1 / (2*n) ) * mse / ( F_av**2 )
-            factor2 = np.sqrt( mse / n ) * ( 1 / F_av )
-        
-        if (self.frac_variability == 0):
-            self.unc_frac_variability = 0.1
-        else:
-            self.unc_frac_variability = np.sqrt( ( (factor1)**2 / self.normalized_excess_variance ) + (factor2)**2 )
-       
-        return self.normalized_excess_variance, self.unc_normalized_excess_variance, self.frac_variability, self.unc_frac_variability
-
-    def convert_MET_UTC(self, time_MET):
-        time_Unix = Time(time_MET, format='unix', scale='utc')
-        time_difference = Time('2001-01-01', format='iso', scale='utc')
-        time_difference.format = 'unix'
-        time_difference.value
-        time_MET_copy = np.copy(time_MET)
-        time_MET_copy += time_difference.value
-        time_Unix = Time(time_MET_copy, format='unix', scale='utc')
-        time_Unix.format = 'iso'
-        time_Unix
-        time_UTC = []
-        for i in range(len(time_Unix.value)):
-            time_UTC.append(datetime.strptime(time_Unix.value[i][:10], '%Y-%m-%d'))
-        return time_UTC
-
-    def plot_lc(self, ylim, flux_from_spectrum, convert_time=True):
-        if convert_time:
-            time = self.convert_MET_UTC(self.time_flux)
-            time_error = self.convert_MET_UTC(self.time_flux_error)
-            time_upper_lim = self.convert_MET_UTC(self.time_flux_upper_limits)
-        else:
-            time = self.time_flux
-            time_error = self.time_flux_error
-            time_upper_lim = self.time_flux_upper_limits
-
-        plt.figure(figsize=(17,5), dpi=300)
-        plt.plot(time, self.flux, '.', markersize=10, label='Flux Points')
-        plt.plot(time, self.flux, linewidth=0.4, color='black')
-        plt.plot(time_upper_lim, self.flux_upper_limits, 'v', color='gray', markersize=3, alpha=0.45, label='Upper Limits')
-        plt.errorbar(time, self.flux, yerr=self.flux_high_error-self.flux, linewidth=0.2, color='black', alpha=0.9)
-        plt.errorbar(time, self.flux, yerr=self.flux-self.flux_low_error, linewidth=0.2, color='black', alpha=0.9)
-        plt.legend(fontsize=15)
-        plt.ylim(0, ylim)
-        plt.title(f'4FGL+{self.name} Light Curve', fontsize=20)
-        plt.ylabel('Photon Flux (0.1-100 GeV ph $cm^{-2}$ $s^{-1}$)', fontsize=15)
-        plt.xlabel('Date (UTC)', fontsize=15)
-        return
+    
