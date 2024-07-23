@@ -1,41 +1,20 @@
-
-
-## main imports
 import numpy as np
 import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
-
-## astro imports
-import astropy.table
-from astropy import units as u
-from astropy.io import fits
-from astropy.io import ascii
-from astropy.table import QTable, Table
-
-from astropy.time import Time,TimeUnix
-from datetime import datetime
-
-## other imports
-import os
-import csv
-import glob
-import math
 import json
-import statistics
-
-import scipy.optimize as sp
-import scipy.odr.odrpack as odrpack
-from scipy import signal, integrate
-from scipy.fft import fft, fftfreq
-from scipy.stats import pearsonr
-
-import matplotlib.ticker as mticker
-from matplotlib.ticker import FormatStrFormatter
 
 
-
-class read_json_file:
+class Read_json_file:
+    '''
+    This class reads the json file and returns its dictionary and dataframe
+    with relevant information. It is important to check the path for the folder,
+    here we are using the version 3 of '4LAC_lightcurve_downloader'. It is only
+    implemented for ts1 lightcurves that have been downloaded in the folder
+    'input_lightcurve_downloads_v3'.
+    Arguments:
+    file_name : file name in a format like '4FGL+J0001.2-0747.json'  (string);
+    binning   : ['3-days','weekly','monthly'] desired cadence to obtain the info (string);
+    index     : ['fixed','free'] desired index of the lightcurve (string).
+    '''
     
     def __init__(self, file_name, binning=['3-days','weekly','monthly'], index=['fixed','free']):
         self.file_name = file_name
@@ -44,8 +23,8 @@ class read_json_file:
         self.file = self.open_file(self.index)
         self.data = json.load(self.file)
         self.load_data()
-        self.data_dict = self.create_dictionary()
-        self.df = self.create_dataframe()
+        self.dictionary = self.create_dictionary()
+        self.dataframe = self.create_dataframe()
         
     def open_file(self, index=['fixed','free']):
         self.path_downloaded_lc_catalog = '../4LAC_lightcurve_downloader_v3/resulting_catalogs/input_lightcurve_downloads_v3'
@@ -76,6 +55,7 @@ class read_json_file:
         self.name = self.file_name[5:-5]
         
         data = self.data
+        
         ## ts = test statistics
         self.time_ts = np.array(data['ts'])[:, 0]      # [i][0]
         self.values_ts = np.array(data['ts'])[:, 1]    # [i][1]
@@ -94,14 +74,14 @@ class read_json_file:
         self.time_flux_error = np.array(data['flux_error'])[:,0]  # [i][0]
         self.flux_low_error  = np.array(data['flux_error'])[:,1]  # [i][1]  - lower flux edge
         self.flux_high_error = np.array(data['flux_error'])[:,2]  # [i][2]  - high edge
-        self.flux_error = self.low_and_high_errors()
+        self.flux_error = self.low_and_high_error_edges()
         ## fit convergence
         self.time_fit_convergence = np.array(data['fit_convergence'])[:,0]
         self.fit_convergence = np.array(data['fit_convergence'])[:,1]  # [i][1] - should be zero!
         ## dlogl
         self.dlogl = np.array(data['dlogl'])
         
-    def low_and_high_errors(self):
+    def low_and_high_error_edges(self):
         ## selecting only the error bar: flux_error = flux - flux_low_error // flux_high_error - flux
         flux_point_low_error = self.flux - self.flux_low_error
         flux_point_high_error = self.flux_high_error - self.flux
@@ -115,7 +95,7 @@ class read_json_file:
         return flux_error
     
     def create_dictionary(self):
-        data_dict = {
+        dictionary = {
             'name': self.name,
             'time_flux': self.time_flux,
             'flux': self.flux,
@@ -131,12 +111,12 @@ class read_json_file:
             'fit_convergence': self.fit_convergence,
             'dlogl': self.dlogl
         }
-        return data_dict
+        return dictionary
     
     def create_dataframe(self):
         ## create a DataFrame for the outlier treatment
         df = pd.DataFrame()
-        data_dict = self.data_dict
+        data_dict = self.dictionary
 
         ## assign 'time_fit_convergence' as index - the total number of observations
         df['time_fit_convergence'] = data_dict['time_fit_convergence']
@@ -166,14 +146,3 @@ class read_json_file:
         df.loc[mask_flux_error, 'flux_error'] = data_dict['flux_error']
         
         return df
-    
-    def load_free_dataframe(self):
-        self.file_free = self.open_file('free')
-        self.data_free = json.load(self.file_free)
-        self.load_data()
-        self.data_dict_free = self.create_dictionary()
-        self.df_free = self.create_dataframe()
-        
-        return self.df_free
-
-    
