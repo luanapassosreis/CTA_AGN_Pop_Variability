@@ -4,7 +4,8 @@ import pandas as pd
 import glob
 import os
 
-def filter_list_sources(binning=['3-days', 'weekly', 'monthly'], index=['fixed', 'free']):
+
+def generate_list_sources(binning=['3-days', 'weekly', 'monthly'], index=['fixed', 'free']):
     path_downloaded_lc_catalog = '../4LAC_lightcurve_downloader_v3/resulting_catalogs/input_lightcurve_downloads_v3'
     path_folder = f'{index}_indexed_lightcurves'
     
@@ -22,7 +23,13 @@ def filter_list_sources(binning=['3-days', 'weekly', 'monthly'], index=['fixed',
     return file_list
 
     
-def filter_source_points(source_dataframe):
+    
+def filter_UL_percentage(dict_lightcurve_files):
+    
+    return
+    
+
+def filter_source_flux_points(source_dataframe):
 
     ## to remove points
     indices_to_remove_fit = (source_dataframe['fit_convergence'] != 0) # fit_convergence != 0
