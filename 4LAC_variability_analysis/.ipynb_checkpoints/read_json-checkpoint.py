@@ -129,7 +129,9 @@ class Read_json_file:
         df['dlogl'] = data_dict['dlogl']
 
         ## insert columns with NaN values
+        df['time_flux'] = np.nan
         df['flux'] = np.nan
+        df['time_flux_upper_limits'] = np.nan
         df['flux_upper_limits'] = np.nan
         df['flux_error'] = np.nan
 

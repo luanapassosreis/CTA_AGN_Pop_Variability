@@ -1,80 +1,58 @@
-from astro_constants import *
-
-import numpy as np
-
-## main imports
 import numpy as np
 import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
 
-## astro imports
-import astropy.table
-from astropy import units as u
-from astropy.io import fits
-from astropy.io import ascii
-from astropy.table import QTable, Table
-
-from astropy.time import Time,TimeUnix
-from datetime import datetime
-
-## other imports
-import os
-import csv
 import glob
-import math
-import json
-import statistics
+import os
 
-import scipy.optimize as sp
-import scipy.odr.odrpack as odrpack
-from scipy import signal, integrate
-from scipy.fft import fft, fftfreq
-from scipy.stats import pearsonr
-
-import matplotlib.ticker as mticker
-from matplotlib.ticker import FormatStrFormatter
-
-
-
-class JSONAnalyzer:
+def filter_list_sources(binning=['3-days', 'weekly', 'monthly'], index=['fixed', 'free']):
+    path_downloaded_lc_catalog = '../4LAC_lightcurve_downloader_v3/resulting_catalogs/input_lightcurve_downloads_v3'
+    path_folder = f'{index}_indexed_lightcurves'
     
-    def __init__(self, file_name, binning=['3-days','weekly','monthly'], index=['fixed','free']):
-        self.file_name = file_name
-        self.binning = binning
-        self.index = index
-        self.file = self.open_file(self.index)
-        self.data = json.load(self.file)
-        self.load_data()
-        self.data_dict = self.create_dictionary()
-        self.df = self.create_dataframe()
-        
+    if binning == '3-days':
+        files = glob.glob(f'{path_downloaded_lc_catalog}/{path_folder}/3days_ts1_{index}index_lightcurves/*.json')
+    elif binning == 'weekly':
+        files = glob.glob(f'{path_downloaded_lc_catalog}/{path_folder}/weekly_ts1_{index}index_lightcurves/*.json')
+    elif binning == 'monthly':
+        files = glob.glob(f'{path_downloaded_lc_catalog}/{path_folder}/monthly_ts1_{index}index_lightcurves/*.json')
+    else:
+        raise ValueError("Invalid binning option. Choose from '3-days', 'weekly', or 'monthly'.")
+    
+    file_list = sorted([os.path.basename(file) for file in files])
+    
+    return file_list
 
-    def removing_outliers(self):
-        dataframe = self.df
-        df_free = self.load_free_dataframe()
+    
+def filter_source_points(source_dataframe):
 
-        indices_to_remove_fit = (dataframe['fit_convergence'] != 0) # fit_convergence != 0
-        indices_to_remove_flux_error = (dataframe['flux_error'] == 0) # flux_error == 0
-        indices_to_remove = indices_to_remove_fit | indices_to_remove_flux_error
+    ## to remove points
+    indices_to_remove_fit = (source_dataframe['fit_convergence'] != 0) # fit_convergence != 0
+    indices_to_remove_flux_error = (source_dataframe['flux_error'] == 0) # flux_error == 0
+    indices_to_remove = indices_to_remove_fit | indices_to_remove_flux_error
 
-        ## include time
-        dataframe.loc[indices_to_remove, ['flux', 'flux_upper_limits', 'flux_error']] = np.nan
+    source_dataframe.loc[indices_to_remove, ['time_flux', 'flux',
+                                      'time_flux_upper_limits', 'flux_upper_limits',
+                                      'flux_error']] = np.nan
+    
+    ## to turn the point into an Upper Limit
+    indices_to_replaceUL_ts = (source_dataframe['values_ts'] < 10) # TS < 10 -> point should be an UL
+    source_dataframe.loc[indices_to_replaceUL_ts,
+                         'time_flux_upper_limits'] = source_dataframe.loc[indices_to_replaceUL_ts, 'time_flux']
+    source_dataframe.loc[indices_to_replaceUL_ts,
+                         'flux_upper_limits'] = source_dataframe.loc[indices_to_replaceUL_ts, 'flux']
+    source_dataframe.loc[indices_to_replaceUL_ts, ['time_flux', 'flux', 'flux_error']] = np.nan
 
-        indices_to_replaceUL_ts = (dataframe['values_ts'] < 10) # TS < 10 -> point should be an UL
-        dataframe.loc[indices_to_replaceUL_ts, 'flux_upper_limits'] = dataframe.loc[indices_to_replaceUL_ts, 'flux']
-        dataframe.loc[indices_to_replaceUL_ts, ['flux', 'flux_error']] = np.nan
-        
-        ## Remove bins with exposure < 1e7 cm^2 s
-        exposure = dataframe['flux'] / (dataframe['flux_error'] ** 2)
-        indices_to_remove_exposure = (exposure < 1e7)
-        dataframe.loc[indices_to_remove_exposure, ['flux', 'flux_upper_limits', 'flux_error']] = np.nan
+    ## remove bins with exposure < 1e7 cm^2 s
+    exposure = source_dataframe['flux'] / (source_dataframe['flux_error'] ** 2)
+    indices_to_remove_exposure = (exposure < 1e7)
+    source_dataframe.loc[indices_to_remove_exposure, ['time_flux', 'flux',
+                                                      'time_flux_upper_limits', 'flux_upper_limits',
+                                                      'flux_error']] = np.nan
 
-        
-        # indices_to_replacefree_dlogl = (dataframe['dlogl'] > 5) # 2*dlogl > 10 -> should have free index
-        # dataframe.loc[indices_to_replacefree_dlogl, 'flux'] = df_free.loc[indices_to_replacefree_dlogl, 'flux']
-        # dataframe.loc[indices_to_replacefree_dlogl, 'flux_error'] = df_free.loc[indices_to_replacefree_dlogl, 'flux_error']
-        
-        # print(f'{len(indices_to_replacefree_dlogl)} points were replaced in {self.name} fixed -> free index!')
-        
-        return dataframe
+
+    # indices_to_replacefree_dlogl = (source_dataframe['dlogl'] > 5) # 2*dlogl > 10 -> should have free index
+    # source_dataframe.loc[indices_to_replacefree_dlogl, 'flux'] = df_free.loc[indices_to_replacefree_dlogl, 'flux']
+    # source_dataframe.loc[indices_to_replacefree_dlogl, 'flux_error'] = df_free.loc[indices_to_replacefree_dlogl, 'flux_error']
+
+    # print(f'{len(indices_to_replacefree_dlogl)} points were replaced in {self.name} fixed -> free index!')
+
+    return filtered_dataframe

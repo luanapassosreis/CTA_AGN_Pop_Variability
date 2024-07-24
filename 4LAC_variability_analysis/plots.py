@@ -141,3 +141,12 @@ class Plots:
     def spectrum(self):
         
         return 
+    
+    
+    def exposure(self):
+        
+        return
+    
+    def norm_excess_var_3days_monthly(self):
+        
+        return
