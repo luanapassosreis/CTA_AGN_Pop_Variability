@@ -58,6 +58,7 @@ class JSONAnalyzer:
         indices_to_remove_flux_error = (dataframe['flux_error'] == 0) # flux_error == 0
         indices_to_remove = indices_to_remove_fit | indices_to_remove_flux_error
 
+        ## include time
         dataframe.loc[indices_to_remove, ['flux', 'flux_upper_limits', 'flux_error']] = np.nan
 
         indices_to_replaceUL_ts = (dataframe['values_ts'] < 10) # TS < 10 -> point should be an UL

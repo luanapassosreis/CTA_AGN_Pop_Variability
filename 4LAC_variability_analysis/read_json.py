@@ -135,10 +135,12 @@ class Read_json_file:
 
         ## fill in the values where 'time_flux' matches the index 'time_fit_convergence'
         mask_flux = df.index.isin(data_dict['time_flux'])
+        df.loc[mask_flux, 'time_flux'] = data_dict['time_flux']
         df.loc[mask_flux, 'flux'] = data_dict['flux']
 
         ## 'time_upper_lim' matches the index 'time_fit_convergence'
         mask_upper_lim = df.index.isin(data_dict['time_flux_upper_limits'])
+        df.loc[mask_upper_lim, 'time_flux_upper_limits'] = data_dict['time_flux_upper_limits']
         df.loc[mask_upper_lim, 'flux_upper_limits'] = data_dict['flux_upper_limits']
 
         ## 'time_flux_error' matches the index
