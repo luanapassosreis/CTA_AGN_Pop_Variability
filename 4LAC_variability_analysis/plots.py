@@ -1,5 +1,3 @@
-from astro_constants import *
-
 import numpy as np
 
 ## main imports
@@ -45,7 +43,7 @@ R_s = 2.96e5 * m # [cm] = 2GM/c^2 (KGS15 page 4)
 # q = ( 1 - ( 3 * R_s / R_x)**(1/2) )**(1/4) # KGS15 page 4
 
 
-class plots:
+class Plots:
     def __init__(self, r_x, l, l_x, mdot, m):
         self.r_x = r_x
         self.l = l
@@ -56,20 +54,7 @@ class plots:
         # self.Gamma = (1 + (va0 / c )**2 )**(-1/2)
         self.q = ( 1 - ( 3 / self.r_x )**(1/2) )**(1/4)
 
-        
-    def lightcurve(self):
-        '''Calculate inner disk magnetic field intensity.
-        Eq.(2) of KGS15.'''
-        # [G]
-        return 9.96e8 * self.r_x**(-5/4) * self.mdot**(1/2) * self.m**(-1/2)
-
     
-    def spectrum(self):
-        '''Calculate coronal particle number density.
-        Eq.(7) of KGS15.'''
-         # [cm-3]
-        return 8.02e18 * self.Gamma**(1/2) * self.r_x**(-3/8) * self.l**(-3/4) * self.q**(-2) * self.mdot**(1/4) * self.m**(-1)
-
     
     def convert_MET_UTC(self, time_MET):
         time_Unix = Time(time_MET, format='unix', scale='utc')
@@ -85,7 +70,7 @@ class plots:
         for i in range(len(time_Unix.value)):
             time_UTC.append(datetime.strptime(time_Unix.value[i][:10], '%Y-%m-%d'))
         return time_UTC
-
+    
     def plot_lc(self, ylim, flux_from_spectrum, convert_time=True):
         if convert_time:
             time = self.convert_MET_UTC(self.time_flux)
@@ -108,3 +93,16 @@ class plots:
         plt.ylabel('Photon Flux (0.1-100 GeV ph $cm^{-2}$ $s^{-1}$)', fontsize=15)
         plt.xlabel('Date (UTC)', fontsize=15)
         return
+    
+    def lightcurve(self):
+        '''Calculate inner disk magnetic field intensity.
+        Eq.(2) of KGS15.'''
+        # [G]
+        return 9.96e8 * self.r_x**(-5/4) * self.mdot**(1/2) * self.m**(-1/2)
+
+    
+    def spectrum(self):
+        '''Calculate coronal particle number density.
+        Eq.(7) of KGS15.'''
+         # [cm-3]
+        return 8.02e18 * self.Gamma**(1/2) * self.r_x**(-3/8) * self.l**(-3/4) * self.q**(-2) * self.mdot**(1/4) * self.m**(-1)
