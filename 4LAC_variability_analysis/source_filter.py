@@ -21,45 +21,40 @@ def generate_list_sources(binning=['3-days', 'weekly', 'monthly'], index=['fixed
     file_list = sorted([os.path.basename(file) for file in files])
     
     return file_list
-
-    
-    
-def filter_UL_percentage(dict_lightcurve_files):
-    
-    return
     
 
-def filter_source_flux_points(source_dataframe):
+def filter_source_flux(source_dataframe):
+    filtered_df = source_dataframe.copy()
 
     ## to remove points
     indices_to_remove_fit = (source_dataframe['fit_convergence'] != 0) # fit_convergence != 0
     indices_to_remove_flux_error = (source_dataframe['flux_error'] == 0) # flux_error == 0
     indices_to_remove = indices_to_remove_fit | indices_to_remove_flux_error
 
-    source_dataframe.loc[indices_to_remove, ['time_flux', 'flux',
+    filtered_df.loc[indices_to_remove, ['time_flux', 'flux',
                                       'time_flux_upper_limits', 'flux_upper_limits',
                                       'flux_error']] = np.nan
     
     ## to turn the point into an Upper Limit
     indices_to_replaceUL_ts = (source_dataframe['values_ts'] < 10) # TS < 10 -> point should be an UL
-    source_dataframe.loc[indices_to_replaceUL_ts,
+    filtered_df.loc[indices_to_replaceUL_ts,
                          'time_flux_upper_limits'] = source_dataframe.loc[indices_to_replaceUL_ts, 'time_flux']
-    source_dataframe.loc[indices_to_replaceUL_ts,
+    filtered_df.loc[indices_to_replaceUL_ts,
                          'flux_upper_limits'] = source_dataframe.loc[indices_to_replaceUL_ts, 'flux']
-    source_dataframe.loc[indices_to_replaceUL_ts, ['time_flux', 'flux', 'flux_error']] = np.nan
+    filtered_df.loc[indices_to_replaceUL_ts, ['time_flux', 'flux', 'flux_error']] = np.nan
 
     ## remove bins with exposure < 1e7 cm^2 s
     exposure = source_dataframe['flux'] / (source_dataframe['flux_error'] ** 2)
     indices_to_remove_exposure = (exposure < 1e7)
-    source_dataframe.loc[indices_to_remove_exposure, ['time_flux', 'flux',
+    filtered_df.loc[indices_to_remove_exposure, ['time_flux', 'flux',
                                                       'time_flux_upper_limits', 'flux_upper_limits',
                                                       'flux_error']] = np.nan
 
 
     # indices_to_replacefree_dlogl = (source_dataframe['dlogl'] > 5) # 2*dlogl > 10 -> should have free index
-    # source_dataframe.loc[indices_to_replacefree_dlogl, 'flux'] = df_free.loc[indices_to_replacefree_dlogl, 'flux']
-    # source_dataframe.loc[indices_to_replacefree_dlogl, 'flux_error'] = df_free.loc[indices_to_replacefree_dlogl, 'flux_error']
+    # filtered_df.loc[indices_to_replacefree_dlogl, 'flux'] = df_free.loc[indices_to_replacefree_dlogl, 'flux']
+    # filtered_df.loc[indices_to_replacefree_dlogl, 'flux_error'] = df_free.loc[indices_to_replacefree_dlogl, 'flux_error']
 
     # print(f'{len(indices_to_replacefree_dlogl)} points were replaced in {self.name} fixed -> free index!')
 
-    return filtered_dataframe
+    return filtered_df

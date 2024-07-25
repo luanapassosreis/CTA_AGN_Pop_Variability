@@ -1,6 +1,4 @@
-from astro_constants import *
 
-import numpy as np
 
 ## main imports
 import numpy as np
@@ -36,59 +34,51 @@ import matplotlib.ticker as mticker
 from matplotlib.ticker import FormatStrFormatter
 
 
-class JSONAnalyzer:
+class Estimate_variability:
     
-    def __init__(self, file_name, binning=['3-days','weekly','monthly'], index=['fixed','free']):
-        self.file_name = file_name
-        self.binning = binning
-        self.index = index
-        self.file = self.open_file(self.index)
-        self.data = json.load(self.file)
-        self.load_data()
-        self.data_dict = self.create_dictionary()
-        self.df = self.create_dataframe()
+    def __init__(self, source_dataframe):
+        self.df = source_dataframe
+        self.drop_NaNs_from_df()
 
+    def drop_NaNs_from_df(self):
+        ## drop NaNs for ['time_flux', 'flux', 'flux_error']
+        self.filtered_flux_df = self.df.dropna(subset=['time_flux', 'flux', 'flux_error'])
+        
+        ## drop NaNs for ['time_flux_upper_limits', 'flux_upper_limits']
+        self.filtered_upper_limits_df = self.df.dropna(subset=['time_flux_upper_limits', 'flux_upper_limits'])
+        return
+    
+    
     def calculate_variability(self):
-        dictionary = self.data_dict
-        dataframe = self.df
         
-        filtered_df = self.removing_outliers()
+        time_flux = self.filtered_flux_df['time_flux']
+        flux = self.filtered_flux_df['flux']
+        flux_error = self.filtered_flux_df['flux_error']
         
-        ## selecting only non-NaN values from the DataFrame for flux and flux_error
-        flux_non_nan_values = filtered_df.dropna(subset=['flux'])
-        flux_error_non_nan_values = filtered_df.dropna(subset=['flux_error'])
-        flux_ULs_non_nan_values = filtered_df.dropna(subset=['flux_upper_limits'])
-
-        ## get the indexes (time) of the non-NaN values
-        self.time_flux_non_nan = flux_non_nan_values.index
-        self.time_flux_error_non_nan = flux_error_non_nan_values.index
-
-        self.selected_flux_values = flux_non_nan_values['flux']
-        self.selected_flux_error_values = flux_error_non_nan_values['flux_error']
+        time_flux_upper_limits = self.filtered_upper_limits_df['time_flux_upper_limits']
+        flux_upper_limits = self.filtered_upper_limits_df['flux_upper_limits']
 
         ##### normalized excess variance #####
         
-        F_av = np.average(self.selected_flux_values)  # simple average
-        n = len(self.selected_flux_values)
+        F_av = np.average(flux)  # simple average
+        n = len(flux)
         
         if n != 1:
-            s_squared = (1 / (n - 1)) * sum((F_i - F_av)**2 for F_i in self.selected_flux_values)
+            s_squared = (1 / (n - 1)) * sum((F_i - F_av)**2 for F_i in flux)
         else:
-            s_squared = (1 / (n)) * sum((F_i - F_av)**2 for F_i in self.selected_flux_values)
-            print(f'\nthe source {self.name} has only 1 flux point selected!')
-            print(f'\n -> size ULs: {len(self.flux_upper_limits)}')
-            print(f' -> size flux points: {len(self.flux)}')
-            print(f'\n -> AFTER selection, size ULs: {len(flux_ULs_non_nan_values)}, size flux: {len(flux_non_nan_values)}')
+            s_squared = (1 / (n)) * sum((F_i - F_av)**2 for F_i in flux)
+            print(f'\nthis source has only 1 flux point selected!')
+            print(f'\n -> size ULs: {len(flux_upper_limits)}')
+            print(f' -> size flux points: {len(flux)}')
             
         if n != 0:
-            mse = (1/n) * sum(sigma_i**2 for sigma_i in self.selected_flux_error_values)
+            mse = (1/n) * sum(sigma_i**2 for sigma_i in flux_error)
         else:
             n=1
-            mse = (1/n) * sum(sigma_i**2 for sigma_i in self.selected_flux_error_values)
-            print(f'\nthe source {self.name} has NO flux points selected!')
-            print(f'\n -> size ULs: {len(self.flux_upper_limits)}')
-            print(f' -> size flux points: {len(self.flux)}')
-            print(f'\n -> AFTER selection, size ULs: {len(flux_ULs_non_nan_values)}, size flux: {len(flux_non_nan_values)}')
+            mse = (1/n) * sum(sigma_i**2 for sigma_i in flux_error)
+            print(f'\nthis source has NO flux points selected!')
+            print(f'\n -> size ULs: {len(flux_upper_limits)}')
+            print(f' -> size flux points: {len(flux)}')
             
         excess_variance = s_squared - mse
         
@@ -101,7 +91,7 @@ class JSONAnalyzer:
             n=1
             term1 = np.sqrt(2/n) * ( mse / (F_av**2) )
             term2 = np.sqrt(mse/n) * ( 2 / F_av )
-            print(f'the source {self.name} has NO flux points selected! DO NOT trust this value!')
+            print(f'this source has NO flux points selected! DO NOT trust this value!')
         
         self.unc_normalized_excess_variance = np.sqrt( (term1)**2 + ( (term2)**2 * self.normalized_excess_variance) )
         
