@@ -1,3 +1,6 @@
+from source_filter import *
+from spectrum_integrate import *
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -27,8 +30,8 @@ from datetime import datetime
 # from scipy.fft import fft, fftfreq
 # from scipy.stats import pearsonr
 
-# import matplotlib.ticker as mticker
-# from matplotlib.ticker import FormatStrFormatter
+import matplotlib.ticker as mticker
+from matplotlib.ticker import FormatStrFormatter
 
 
 class Plots:
@@ -138,15 +141,51 @@ class Plots:
         return
 
     
-    def spectrum(self):
+    def spectrum(self, power, x_dlim, x_ulim, y_dlim, y_ulim):
+    
+        spectrum_flux, diff_flux, spec_type = integrate_spectrum_flux(self.source_name, self.df_4lac,
+                                                                      y_min=0.1, y_max=100)
         
-        return 
+        plt.figure(figsize=(7,5), dpi=100)
+
+        plt.plot(((E*u.erg).to('GeV')).value, diff_flux*10**(power), '+', markersize=2, color='black')
+        plt.plot(((E*u.erg).to('GeV')).value, diff_flux*10**(power), '--', linewidth=0.4, color='black')
+
+        plt.xscale('log')
+        plt.yscale('log')
+        plt.grid()
+
+        plt.gca().xaxis.set_major_formatter(FormatStrFormatter('%.1f'))
+        plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
+
+        plt.xlim(x_dlim, x_ulim)
+        plt.ylim(y_dlim, y_ulim)
+
+
+        plt.title(f'4FGL+{self.source_name} - {spec_type} Spectrum', fontsize='large')
+        plt.ylabel(r'$\nu\ F_{\nu}$ [ $ 10^{- %d } $ erg $cm^{-2}$ $s^{-1}$]' % (power), fontsize=12)
+        plt.xlabel('Energy (GeV)', fontsize=12)
+
+        return
+    
+    
+    
+    def norm_excess_var_3days_monthly(self):
+        
+        return
+    
     
     
     def exposure(self):
         
         return
     
-    def norm_excess_var_3days_monthly(self):
+    
+    def test_statistics(self):
+        
+        return
+    
+    
+    def delta_loglikelihood(self):
         
         return
