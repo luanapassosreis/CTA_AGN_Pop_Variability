@@ -8,6 +8,11 @@ import matplotlib.pyplot as plt
 from astropy.time import Time,TimeUnix
 from datetime import datetime
 
+from scipy.fft import fft, fftn, fftfreq
+from scipy.signal import lombscargle
+from scipy.optimize import curve_fit
+from scipy.interpolate import interp1d
+
 
 # import seaborn as sns
 
@@ -168,15 +173,26 @@ class Plots:
 
         return
     
-    
-    
     def norm_excess_var_3days_monthly(self):
         
         return
     
     
-    
     def exposure(self):
+        x = self.filtered_flux_df['flux'] / (self.filtered_flux_df['flux_error']**2)
+        y = self.filtered_flux_df['flux'] / np.median(self.filtered_flux_df['flux'])
+
+        plt.figure(figsize=(8, 7))
+        plt.scatter(x, y, alpha=0.5, s=50, color='green')
+        plt.xscale('log')
+        plt.yscale('log')
+        plt.xlim(1e2,1e12)
+        plt.xlabel('phi / sigma^2')
+        plt.ylabel('phi / phi_median')
+        plt.title('Normalized Flux vs Flux/Median Flux')
+        plt.grid(True)
+        plt.tight_layout()
+        plt.show()
         
         return
     
@@ -189,3 +205,151 @@ class Plots:
     def delta_loglikelihood(self):
         
         return
+    
+    
+    #### trying a few things
+    
+    
+    def fourier_transform_with_interpolation(self, flux, time):
+        # Create an evenly spaced time grid
+        time_grid = np.linspace(np.min(time), np.max(time), len(time))
+        
+        # Interpolate the flux data to this grid
+        interp_func = interp1d(time, flux, kind='linear')
+        flux_interp = interp_func(time_grid)
+        
+        # Detrend the flux data
+        flux_detrended = flux_interp - np.mean(flux_interp)
+
+        # Number of sample points
+        N = len(flux_detrended)
+
+        # Sample spacing (time step)
+        T = np.mean(np.diff(time_grid))
+
+        # Fourier Transform using fftn
+        flux_fft = fftn(flux_detrended)
+
+        # Frequency bins
+        frequencies = fftfreq(N, T)
+
+        # Power Spectrum
+        power_spectrum = np.abs(flux_fft)**2
+
+        # Only keep positive frequencies
+        positive_freqs = frequencies > 0
+        frequencies = frequencies[positive_freqs]
+        power_spectrum = power_spectrum[positive_freqs]
+
+        # Plot the Power Spectrum
+        plt.figure(figsize=(10, 6))
+        plt.loglog(frequencies, power_spectrum)
+        plt.xlabel('Frequency (Hz)')
+        plt.ylabel('Power Spectrum')
+        plt.title('Power Spectrum of Flux Variability (Interpolated Data)')
+        plt.grid(True)
+        plt.show()
+    
+    
+    def fourier_transform(self, flux, time):
+        ## check if the data is evenly spaced
+        dt = np.diff(time)
+        if not np.allclose(dt, dt[0]):
+            raise ValueError("Time data must be evenly spaced for accurate Fourier Transform.")
+            
+        ## sample spacing (time step)
+        T = np.mean(dt)
+
+        ## subtract the mean flux (detrending)
+        flux_detrended = flux - np.mean(flux)
+
+        N = len(flux_detrended) # sample
+
+        ## Fourier Transform
+        flux_fft = fft(flux_detrended)
+        frequencies = fftfreq(N, T)  # Frequency bins
+
+        ## Power Spectrum
+        power_spectrum = np.abs(flux_fft)**2
+
+        ## only keep positive frequencies
+        positive_freqs = frequencies > 0
+        frequencies = frequencies[positive_freqs]
+        power_spectrum = power_spectrum[positive_freqs]
+
+        plt.figure(figsize=(10, 6))
+        plt.loglog(frequencies, power_spectrum)
+        plt.xlabel('Frequency (Hz)')
+        plt.ylabel('Power Spectrum')
+        plt.title('Power Spectrum of Flux Variability')
+        plt.grid(True)
+        plt.show()
+
+
+    def lomb_scargle_transform(self, flux, time):
+        ## normalize time and flux
+        time = time - np.min(time)  # Shift time to start at 0
+        flux_detrended = flux - np.mean(flux)  # Detrend the flux
+
+        ## define frequency range
+        min_freq = 1 / (max(time) - min(time))  
+        max_freq = 0.5 / np.median(np.diff(time))  # Nyquist frequency
+        frequencies = np.linspace(min_freq, max_freq, 1000)  # grid
+
+        power_spectrum = lombscargle(time, flux_detrended, 2 * np.pi * frequencies)
+
+        plt.figure(figsize=(10, 6))
+        plt.loglog(frequencies, power_spectrum)
+        plt.xlabel('Frequency (Hz)')
+        plt.ylabel('Power Spectrum')
+        plt.title('Lomb-Scargle Power Spectrum of Flux Variability')
+        plt.grid(True)
+        plt.show()
+        
+        
+    def lomb_scargle_transform_and_fit(self, flux, time):
+        def power_law(frequency, A, alpha):
+            """Power-law model: P(f) = A * f^(-alpha)"""
+            return A * frequency ** (-alpha)
+
+        def log_parabola(frequency, A, alpha, beta):
+            """Log-parabola model: P(f) = A * f^(-alpha - beta * log(f))"""
+            return A * frequency ** (-alpha - beta * np.log(frequency))
+        
+        # Normalize time and flux
+        time = time - np.min(time)
+        flux_detrended = flux - np.mean(flux)
+
+        # Define the frequency range
+        min_freq = 1 / (max(time) - min(time))
+        max_freq = 0.5 / np.median(np.diff(time))
+        frequencies = np.linspace(min_freq, max_freq, 1000)
+
+        # Calculate the Lomb-Scargle periodogram
+        power_spectrum = lombscargle(time, flux_detrended, 2 * np.pi * frequencies)
+
+        # Fit the Power-Law model
+        popt_pl, pcov_pl = curve_fit(power_law, frequencies, power_spectrum)
+        A_fit_pl, alpha_fit_pl = popt_pl
+
+        # Fit the Log-Parabola model
+        # Provide initial guesses for the parameters
+        p0_lp = [A_fit_pl, alpha_fit_pl, 0.5]
+        popt_lp, pcov_lp = curve_fit(log_parabola, frequencies, power_spectrum, p0=p0_lp)
+        A_fit_lp, alpha_fit_lp, beta_fit_lp = popt_lp
+
+        # Plotting
+        plt.figure(figsize=(12, 8))
+        plt.loglog(frequencies, power_spectrum, label='Lomb-Scargle Power Spectrum', color='black')
+        plt.loglog(frequencies, power_law(frequencies, *popt_pl), label=f'Power-Law Fit: $P(f) = {A_fit_pl:.2e} f^{{-{alpha_fit_pl:.2f}}}$', linestyle='--')
+        # plt.loglog(frequencies, log_parabola(frequencies, *popt_lp), label=f'Log-Parabola Fit: $P(f) = {A_fit_lp:.2e} f^{{-{alpha_fit_lp:.2f} - {beta_fit_lp:.2f} \log(f)}}$', linestyle='--')
+        plt.xlabel('Frequency (Hz)')
+        plt.ylabel('Power Spectrum')
+        plt.title('Lomb-Scargle Power Spectrum with Power-Law Fit')
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+
+        # Print the fitted parameters
+        print(f"Power-Law Fit: A = {A_fit_pl:.2e}, alpha = {alpha_fit_pl:.2f}")
+        # print(f"Log-Parabola Fit: A = {A_fit_lp:.2e}, alpha = {alpha_fit_lp:.2f}, beta = {beta_fit_lp:.2f}")
