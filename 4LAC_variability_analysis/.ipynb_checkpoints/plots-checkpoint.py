@@ -207,41 +207,34 @@ class Plots:
         return
     
     
-    #### trying a few things
+    #------------------------------------- just trying a few things
     
     
     def fourier_transform_with_interpolation(self, flux, time):
-        # Create an evenly spaced time grid
+        ## create an evenly spaced time grid
         time_grid = np.linspace(np.min(time), np.max(time), len(time))
         
-        # Interpolate the flux data to this grid
+        ## interpolate the flux data to this grid
         interp_func = interp1d(time, flux, kind='linear')
         flux_interp = interp_func(time_grid)
         
-        # Detrend the flux data
+        ## detrend the flux data
         flux_detrended = flux_interp - np.mean(flux_interp)
 
-        # Number of sample points
         N = len(flux_detrended)
-
-        # Sample spacing (time step)
-        T = np.mean(np.diff(time_grid))
+        T = np.mean(np.diff(time_grid)) # time step
 
         # Fourier Transform using fftn
         flux_fft = fftn(flux_detrended)
+        frequencies = fftfreq(N, T) # frequency bins
 
-        # Frequency bins
-        frequencies = fftfreq(N, T)
-
-        # Power Spectrum
         power_spectrum = np.abs(flux_fft)**2
 
-        # Only keep positive frequencies
+        ## keep positive frequencies
         positive_freqs = frequencies > 0
         frequencies = frequencies[positive_freqs]
         power_spectrum = power_spectrum[positive_freqs]
 
-        # Plot the Power Spectrum
         plt.figure(figsize=(10, 6))
         plt.loglog(frequencies, power_spectrum)
         plt.xlabel('Frequency (Hz)')
@@ -257,22 +250,20 @@ class Plots:
         if not np.allclose(dt, dt[0]):
             raise ValueError("Time data must be evenly spaced for accurate Fourier Transform.")
             
-        ## sample spacing (time step)
-        T = np.mean(dt)
 
         ## subtract the mean flux (detrending)
         flux_detrended = flux - np.mean(flux)
 
         N = len(flux_detrended) # sample
+        T = np.mean(dt) # time step
 
-        ## Fourier Transform
+        ## Fourier Transform using fft
         flux_fft = fft(flux_detrended)
         frequencies = fftfreq(N, T)  # Frequency bins
 
-        ## Power Spectrum
         power_spectrum = np.abs(flux_fft)**2
 
-        ## only keep positive frequencies
+        ## keep positive frequencies
         positive_freqs = frequencies > 0
         frequencies = frequencies[positive_freqs]
         power_spectrum = power_spectrum[positive_freqs]
@@ -316,29 +307,28 @@ class Plots:
             """Log-parabola model: P(f) = A * f^(-alpha - beta * log(f))"""
             return A * frequency ** (-alpha - beta * np.log(frequency))
         
-        # Normalize time and flux
+        ## normalize time and flux
         time = time - np.min(time)
         flux_detrended = flux - np.mean(flux)
 
-        # Define the frequency range
+        ## frequency range
         min_freq = 1 / (max(time) - min(time))
         max_freq = 0.5 / np.median(np.diff(time))
         frequencies = np.linspace(min_freq, max_freq, 1000)
 
-        # Calculate the Lomb-Scargle periodogram
+        ## Lomb-Scargle periodogram
         power_spectrum = lombscargle(time, flux_detrended, 2 * np.pi * frequencies)
 
-        # Fit the Power-Law model
+        ## fit Power-Law model
         popt_pl, pcov_pl = curve_fit(power_law, frequencies, power_spectrum)
         A_fit_pl, alpha_fit_pl = popt_pl
 
-        # Fit the Log-Parabola model
+        ## fit Log-Parabola model
         # Provide initial guesses for the parameters
         p0_lp = [A_fit_pl, alpha_fit_pl, 0.5]
         popt_lp, pcov_lp = curve_fit(log_parabola, frequencies, power_spectrum, p0=p0_lp)
         A_fit_lp, alpha_fit_lp, beta_fit_lp = popt_lp
 
-        # Plotting
         plt.figure(figsize=(12, 8))
         plt.loglog(frequencies, power_spectrum, label='Lomb-Scargle Power Spectrum', color='black')
         plt.loglog(frequencies, power_law(frequencies, *popt_pl), label=f'Power-Law Fit: $P(f) = {A_fit_pl:.2e} f^{{-{alpha_fit_pl:.2f}}}$', linestyle='--')
@@ -350,6 +340,5 @@ class Plots:
         plt.grid(True)
         plt.show()
 
-        # Print the fitted parameters
         print(f"Power-Law Fit: A = {A_fit_pl:.2e}, alpha = {alpha_fit_pl:.2f}")
         # print(f"Log-Parabola Fit: A = {A_fit_lp:.2e}, alpha = {alpha_fit_lp:.2f}, beta = {beta_fit_lp:.2f}")
