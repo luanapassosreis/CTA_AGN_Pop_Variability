@@ -98,7 +98,7 @@ class Plots:
         
         plt.legend(fontsize=15)
         plt.ylim(0, ylim)
-        plt.title(f'4FGL+{self.source_name} Light Curve -- {binning} cadence', fontsize=20)
+        plt.title(f'4FGL+{self.source_name} Complete Light Curve -- {binning} cadence', fontsize=20)
         plt.ylabel('Photon Flux (0.1-100 GeV ph $cm^{-2}$ $s^{-1}$)', fontsize=15)
         if convert_time:
             plt.xlabel('Date (UTC)', fontsize=15)
@@ -138,7 +138,7 @@ class Plots:
         
         plt.legend(fontsize=15)
         plt.ylim(0, ylim)
-        plt.title(f'4FGL+{self.source_name} Light Curve -- {binning} cadence', fontsize=20)
+        plt.title(f'4FGL+{self.source_name} Filtered Light Curve -- {binning} cadence', fontsize=20)
         plt.ylabel('Photon Flux (0.1-100 GeV ph $cm^{-2}$ $s^{-1}$)', fontsize=15)
         if convert_time:
             plt.xlabel('Date (UTC)', fontsize=15)
