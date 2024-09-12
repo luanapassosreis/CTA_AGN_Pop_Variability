@@ -55,6 +55,7 @@ class Plots:
         self.df_4lac = df_agn_pop_4lac_dr3
         self.source_dict = source_dictionary
         self.source_df = source_dataframe
+        self.filtered_df = filter_source_flux(self.source_df)
     
     def convert_MET_UTC(self, time_MET):
         time_Unix = Time(time_MET, format='unix', scale='utc')
@@ -107,10 +108,10 @@ class Plots:
     
     def drop_NaNs_from_df(self):
         ## drop NaNs for ['time_flux', 'flux', 'flux_error']
-        self.filtered_flux_df = self.source_df.dropna(subset=['time_flux', 'flux', 'flux_error'])
+        self.filtered_flux_df = self.filtered_df.dropna(subset=['time_flux', 'flux', 'flux_error'])
         
         ## drop NaNs for ['time_flux_upper_limits', 'flux_upper_limits']
-        self.filtered_upper_limits_df = self.source_df.dropna(subset=['time_flux_upper_limits', 'flux_upper_limits'])
+        self.filtered_upper_limits_df = self.filtered_df.dropna(subset=['time_flux_upper_limits', 'flux_upper_limits'])
         return
     
     def lightcurve_filtered(self, binning, ylim, convert_time=True):
