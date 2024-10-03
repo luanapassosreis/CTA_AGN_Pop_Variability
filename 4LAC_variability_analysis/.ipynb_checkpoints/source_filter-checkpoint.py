@@ -36,7 +36,7 @@ def filter_source_flux(source_dataframe):
                                       'flux_error']] = np.nan
     
     ## to turn the point into an Upper Limit
-    indices_to_replaceUL_ts = (source_dataframe['values_ts'] < 10) # TS < 10 -> point should be an UL
+    indices_to_replaceUL_ts = (source_dataframe['values_ts'] < 4) # TS < 10 -> point should be an UL
     filtered_df.loc[indices_to_replaceUL_ts,
                          'time_flux_upper_limits'] = source_dataframe.loc[indices_to_replaceUL_ts, 'time_flux']
     filtered_df.loc[indices_to_replaceUL_ts,
