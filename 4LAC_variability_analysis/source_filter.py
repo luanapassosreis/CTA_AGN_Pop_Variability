@@ -25,15 +25,6 @@ def generate_list_sources(binning=['3-days', 'weekly', 'monthly'], index=['fixed
 
 def filter_source_flux(source_dataframe):
     filtered_df = source_dataframe.copy()
-
-    ## to remove points
-    indices_to_remove_fit = (source_dataframe['fit_convergence'] != 0) # fit_convergence != 0
-    indices_to_remove_flux_error = (source_dataframe['flux_error'] == 0) # flux_error == 0
-    indices_to_remove = indices_to_remove_fit | indices_to_remove_flux_error
-
-    filtered_df.loc[indices_to_remove, ['time_flux', 'flux',
-                                      'time_flux_upper_limits', 'flux_upper_limits',
-                                      'flux_error']] = np.nan
     
     ## to turn the point into an Upper Limit
     indices_to_replaceUL_ts = (source_dataframe['values_ts'] < 4) # TS < 10 -> point should be an UL
@@ -46,9 +37,19 @@ def filter_source_flux(source_dataframe):
     ## remove bins with exposure < 1e7 cm^2 s
     exposure = source_dataframe['flux'] / (source_dataframe['flux_error'] ** 2)
     indices_to_remove_exposure = (exposure < 1e7)
-    filtered_df.loc[indices_to_remove_exposure, ['time_flux', 'flux',
-                                                      'time_flux_upper_limits', 'flux_upper_limits',
-                                                      'flux_error']] = np.nan
+    
+    ## to remove points
+    indices_to_remove_fit = (source_dataframe['fit_convergence'] != 0) # fit_convergence != 0
+    indices_to_remove_flux_error = (source_dataframe['flux_error'] == 0) # flux_error == 0
+    
+    indices_to_remove = indices_to_remove_fit | indices_to_remove_flux_error | indices_to_remove_exposure
+
+    ## make the point an UL, with unc_flu_UL = 0 and flux_UL = 0
+    filtered_df.loc[indices_to_remove,
+                         'time_flux_upper_limits'] = source_dataframe.loc[indices_to_remove, 'time_flux']
+    filtered_df.loc[indices_to_remove,
+                         'flux_upper_limits'] = source_dataframe.loc[indices_to_remove, 'flux']
+    filtered_df.loc[indices_to_remove, ['time_flux', 'flux', 'flux_error']] = np.nan
 
 
     # indices_to_replacefree_dlogl = (source_dataframe['dlogl'] > 5) # 2*dlogl > 10 -> should have free index
