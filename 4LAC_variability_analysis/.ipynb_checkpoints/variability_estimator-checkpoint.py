@@ -36,8 +36,8 @@ from matplotlib.ticker import FormatStrFormatter
 
 class Estimate_variability:
     
-    def __init__(self, source_dataframe):
-        self.df = source_dataframe
+    def __init__(self, filtered_df):
+        self.df = filtered_df
         self.drop_NaNs_from_df()
 
     def drop_NaNs_from_df(self):
@@ -51,47 +51,24 @@ class Estimate_variability:
     
     def calculate_variability(self):
         
-        time_flux = self.filtered_flux_df['time_flux']
         flux = self.filtered_flux_df['flux']
-        flux_error = self.filtered_flux_df['flux_error']
-        
-        time_flux_upper_limits = self.filtered_upper_limits_df['time_flux_upper_limits']
-        flux_upper_limits = self.filtered_upper_limits_df['flux_upper_limits']
+        flux_error = self.filtered_flux_df['flux_error'] 
 
         ##### normalized excess variance #####
         
         F_av = np.average(flux)  # simple average
         n = len(flux)
         
-        if n != 1:
-            s_squared = (1 / (n - 1)) * sum((F_i - F_av)**2 for F_i in flux)
-        else:
-            s_squared = (1 / (n)) * sum((F_i - F_av)**2 for F_i in flux)
-            print(f'\nthis source has only 1 flux point selected!')
-            print(f'\n -> size ULs: {len(flux_upper_limits)}')
-            print(f' -> size flux points: {len(flux)}')
+        s_squared = (1 / (n - 1)) * sum((F_i - F_av)**2 for F_i in flux)
             
-        if n != 0:
-            mse = (1/n) * sum(sigma_i**2 for sigma_i in flux_error)
-        else:
-            n=1
-            mse = (1/n) * sum(sigma_i**2 for sigma_i in flux_error)
-            print(f'\nthis source has NO flux points selected!')
-            print(f'\n -> size ULs: {len(flux_upper_limits)}')
-            print(f' -> size flux points: {len(flux)}')
+        mse = (1/n) * sum(sigma_i**2 for sigma_i in flux_error)
             
         excess_variance = s_squared - mse
         
         self.normalized_excess_variance = excess_variance / F_av**2
         
-        if n != 0:
-            term1 = np.sqrt(2/n) * ( mse / (F_av**2) )
-            term2 = np.sqrt(mse/n) * ( 2 / F_av )
-        else:
-            n=1
-            term1 = np.sqrt(2/n) * ( mse / (F_av**2) )
-            term2 = np.sqrt(mse/n) * ( 2 / F_av )
-            print(f'this source has NO flux points selected! DO NOT trust this value!')
+        term1 = np.sqrt(2/n) * ( mse / (F_av**2) )
+        term2 = np.sqrt(mse/n) * ( 2 / F_av )
         
         self.unc_normalized_excess_variance = np.sqrt( (term1)**2 + ( (term2)**2 * self.normalized_excess_variance) )
         
@@ -99,13 +76,8 @@ class Estimate_variability:
         
         self.frac_variability = np.sqrt( max(self.normalized_excess_variance, 0) )  # 4FGL paper: max(term_max, 0)
         
-        if n != 0:
-            factor1 = np.sqrt( 1 / (2*n) ) * mse / ( F_av**2 )
-            factor2 = np.sqrt( mse / n ) * ( 1 / F_av )
-        else:
-            n=1
-            factor1 = np.sqrt( 1 / (2*n) ) * mse / ( F_av**2 )
-            factor2 = np.sqrt( mse / n ) * ( 1 / F_av )
+        factor1 = np.sqrt( 1 / (2*n) ) * mse / ( F_av**2 )
+        factor2 = np.sqrt( mse / n ) * ( 1 / F_av )
         
         if (self.frac_variability == 0):
             self.unc_frac_variability = 0.1
