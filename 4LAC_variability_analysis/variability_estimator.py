@@ -38,21 +38,21 @@ class Estimate_variability:
     
     def __init__(self, filtered_df):
         self.df = filtered_df
-        self.drop_NaNs_from_df()
+        # self.drop_NaNs_from_df()
 
-    def drop_NaNs_from_df(self):
-        ## drop NaNs for ['time_flux', 'flux', 'flux_error']
-        self.filtered_flux_df = self.df.dropna(subset=['time_flux', 'flux', 'flux_error'])
+#     def drop_NaNs_from_df(self):
+#         ## drop NaNs for ['time_flux', 'flux', 'flux_error']
+#         self.filtered_flux_df = self.df.dropna(subset=['time_flux', 'flux', 'flux_error'])
         
-        ## drop NaNs for ['time_flux_upper_limits', 'flux_upper_limits']
-        self.filtered_upper_limits_df = self.df.dropna(subset=['time_flux_upper_limits', 'flux_upper_limits'])
-        return
+#         ## drop NaNs for ['time_flux_upper_limits', 'flux_upper_limits']
+#         self.filtered_upper_limits_df = self.df.dropna(subset=['time_flux_upper_limits', 'flux_upper_limits'])
+#         return
     
     
     def calculate_variability(self):
         
-        flux = self.filtered_flux_df['flux']
-        flux_error = self.filtered_flux_df['flux_error'] 
+        flux = self.df['flux'].dropna()
+        flux_error = self.df['flux_error'].dropna() 
 
         ##### normalized excess variance #####
         
@@ -67,22 +67,44 @@ class Estimate_variability:
         
         self.normalized_excess_variance = excess_variance / F_av**2
         
-        term1 = np.sqrt(2/n) * ( mse / (F_av**2) )
-        term2 = np.sqrt(mse/n) * ( 2 / F_av )
         
-        self.unc_normalized_excess_variance = np.sqrt( (term1)**2 + ( (term2)**2 * self.normalized_excess_variance) )
+#         term1 = np.sqrt(2/n) * ( mse / (F_av**2) )
+#         term2 = np.sqrt(mse/n) * ( 2 / F_av )
+        
+#         self.unc_normalized_excess_variance = np.sqrt( (term1)**2 + ( (term2)**2 * self.normalized_excess_variance) )
+#         print('unc_normalized_excess_variance: ', self.unc_normalized_excess_variance)
         
         ##### Fractional Variability #####
         
         self.frac_variability = np.sqrt( max(self.normalized_excess_variance, 0) )  # 4FGL paper: max(term_max, 0)
         
         factor1 = np.sqrt( 1 / (2*n) ) * mse / ( F_av**2 )
-        factor2 = np.sqrt( mse / n ) * ( 1 / F_av )
+        factor2 = np.sqrt( mse / n ) * ( 1 / F_av )    
         
         if (self.frac_variability == 0):
             self.unc_frac_variability = 0.1
         else:
             self.unc_frac_variability = np.sqrt( ( (factor1)**2 / self.normalized_excess_variance ) + (factor2)**2 )
+        
+        term1 = np.sqrt(2/n) * ( mse / (F_av**2) )
+        term2 = np.sqrt(mse/n) * ( 2 * self.unc_frac_variability / F_av )
+        
+        self.unc_normalized_excess_variance = np.sqrt( (term1)**2 + ( (term2)**2 ) )
+        
+        # print('n: ', n)
+        # print('s_squared: ', s_squared)
+        # print('mse: ', mse)
+        # print('s_squared - mse: ', s_squared - mse)
+        # print('F_av: ', F_av)
+        # print('\nexcess_variance: ', excess_variance)
+        # print('normalized_excess_variance: ', self.normalized_excess_variance)
+        # print('frac_variability: ', self.frac_variability)
+        # print('factor1: ', factor1)
+        # print('factor2: ', factor2)
+        # print('unc_frac_variability: ', self.unc_frac_variability)
+        # print('term1: ', term1)
+        # print('term2: ', term2)
+        # print('unc_normalized_excess_variance: ', self.unc_normalized_excess_variance)
        
         return self.normalized_excess_variance, self.unc_normalized_excess_variance, self.frac_variability, self.unc_frac_variability
 
