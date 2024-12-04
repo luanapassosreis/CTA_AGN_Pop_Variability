@@ -60,6 +60,8 @@ def input_upperL(filtered_df, case=['average', 'zero']):
     ## if the first bin has a NaN, it will not be inputed
     inputed_df['flux_error'] = inputed_df['flux_error'].fillna(inputed_df['flux'].ffill())
     
+    ## input average value for single bin - 3-days LCs
+    
     ## flux    
         
     if case == 'average':

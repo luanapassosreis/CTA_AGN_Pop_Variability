@@ -87,7 +87,7 @@ class Estimate_variability:
             self.unc_frac_variability = np.sqrt( ( (factor1)**2 / self.normalized_excess_variance ) + (factor2)**2 )
         
         term1 = np.sqrt(2/n) * ( mse / (F_av**2) )
-        term2 = np.sqrt(mse/n) * ( 2 * self.unc_frac_variability / F_av )
+        term2 = np.sqrt(mse/n) * ( 2 * self.frac_variability / F_av )
         
         self.unc_normalized_excess_variance = np.sqrt( (term1)**2 + ( (term2)**2 ) )
         
