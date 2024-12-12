@@ -55,7 +55,7 @@ class Plots:
         self.df_4lac = df_agn_pop_4lac_dr3
         self.source_dict = source_dictionary
         self.source_df = source_dataframe
-        self.filtered_df = filter_source_flux(self.source_df)
+        self.filtered_df = filter_outliers(self.source_df)
     
     def convert_MET_UTC(self, time_MET):
         time_Unix = Time(time_MET, format='unix', scale='utc')

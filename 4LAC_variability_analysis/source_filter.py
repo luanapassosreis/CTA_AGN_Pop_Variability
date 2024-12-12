@@ -32,7 +32,7 @@ def filter_outliers(source_dataframe):
     exposure = source_dataframe['flux'] / (source_dataframe['flux_error'] ** 2)
     
     ## to remove
-    indices_ts = (source_dataframe['values_ts'] < 4) # TS < 4
+    indices_ts = (source_dataframe['values_ts'] < 2) # TS < 4
     indices_ferror = (source_dataframe['flux_error'] == 0) # flux_error == 0
     indices_fit = (source_dataframe['fit_convergence'] != 0) # fit_convergence != 0
     indices_expo = (exposure < 1e7) # exposure < 1e7 cm2 s
