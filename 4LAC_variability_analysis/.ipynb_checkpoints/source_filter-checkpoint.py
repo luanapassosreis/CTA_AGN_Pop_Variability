@@ -32,7 +32,7 @@ def filter_outliers(source_dataframe):
     exposure = source_dataframe['flux'] / (source_dataframe['flux_error'] ** 2)
     
     ## to remove
-    indices_ts = (source_dataframe['values_ts'] < 2) # TS < 4
+    indices_ts = (source_dataframe['values_ts'] < 4) # TS < 4
     indices_ferror = (source_dataframe['flux_error'] == 0) # flux_error == 0
     indices_fit = (source_dataframe['fit_convergence'] != 0) # fit_convergence != 0
     indices_expo = (exposure < 1e7) # exposure < 1e7 cm2 s
@@ -47,12 +47,29 @@ def filter_outliers(source_dataframe):
     return filtered_df, n_unconstrained
 
 
+
+
+
 def input_upperL(filtered_df, case=['average', 'zero']):
     inputed_df = filtered_df.copy()
+
+    ## bins where 1<TS<2
+    ts_condition = (filtered_df['values_ts'] > 1) & (filtered_df['values_ts'] < 2)
     
-    indices_UL = np.isnan(filtered_df['flux']) # NaN in flux
+    ## median of 'flux' for bins satisfying the TS condition
+    median_flux = filtered_df.loc[ts_condition, 'flux'].median()
     
-    average_flux = np.average(filtered_df['flux'].dropna())
+    ## replace all initial NaN bins in 'flux_error' with the median_flux
+    first_valid_index = inputed_df['flux_error'].first_valid_index()
+    
+    if first_valid_index is not None:
+        ## fill NaNs in 'flux_error' before the first valid index with median_flux
+        inputed_df.loc[:first_valid_index, 'flux_error'] = inputed_df['flux_error'].fillna(median_flux)
+
+        
+    ## remaining NaN values in 'flux'
+    indices_UL = np.isnan(inputed_df['flux'])
+    average_flux = inputed_df['flux'].dropna().mean()
     
     ## flux_errors
     
@@ -74,6 +91,9 @@ def input_upperL(filtered_df, case=['average', 'zero']):
         raise ValueError("Invalid option for case. Choose either 'average' or 'zero'.")
     
     return inputed_df
+
+
+
 
 
 ## latest test
