@@ -32,22 +32,22 @@ def check_and_fill_bins(source_dataframe):
     
     TS_min = 2
     
-    ## remove invalid bins
+    ## remove invalid bins based on flux_error and fit_convergence
     indices_ferror = (source_dataframe['flux_error'] == 0) # flux_error == 0
     indices_fit = (source_dataframe['fit_convergence'] != 0) # fit_convergence != 0
     
-    indices_to_remove = indices_ferror | indices_fit
+    ## additional cases for NaN in flux
+    indices_nan_flux = source_dataframe['flux'].isna()  # flux is NaN
+    indices_nan_both = indices_nan_flux & source_dataframe['flux_upper_limits'].isna() # flux_UL also NaN
+    indices_neg_ul = indices_nan_flux & (source_dataframe['flux_upper_limits'] < 0) # flux_UL < 0
+    
+    indices_to_remove = indices_ferror | indices_fit | indices_neg_ul | indices_nan_both
     filtered_df.loc[indices_to_remove, ['flux', 'flux_error']] = np.nan
     
+    ## exposure condition
     exposure = filtered_df['flux'] / ((filtered_df['flux_error'])**2)
     indices_expo = (exposure < 1e7) # exposure < 1e7 cm2 s
     filtered_df.loc[indices_expo, ['flux', 'flux_error']] = np.nan
-    
-    # (np.isnan(srcdf['flux'].loc[idx]) and np.isnan(srcdf['flux_upper_limits'].loc[idx])) or
-    # (np.isnan(srcdf['flux'].loc[idx]) and srcdf['flux_upper_limits'].loc[idx]<0)  or                      
-    # (srcdf['flux_error'].loc[idx] > 1e-12 and exposure < 1e7)
-    
-    
     
     ## estimate median of ULs for 1 < TS < TS_min
     median_df = filtered_df.copy()
@@ -77,10 +77,9 @@ def check_and_fill_bins(source_dataframe):
     ## replace NaN in flux_error by the previous bin flux (that's not NaN)
     inputed_df['flux_error'] = inputed_df['flux_error'].fillna(inputed_df['flux'].ffill())
     
-    indices_invalid = np.isnan(inputed_df['flux']) # remaining NaN values in 'flux'
-    inputed_df.loc[indices_invalid, 'flux'] = 0  # Input zero
-    
-    
+    ## replace remaining NaNs in 'flux' with zero
+    indices_invalid = np.isnan(inputed_df['flux'])
+    inputed_df.loc[indices_invalid, 'flux'] = 0
     
     return filtered_df, median_df, inputed_df, n_unconstrained
 
