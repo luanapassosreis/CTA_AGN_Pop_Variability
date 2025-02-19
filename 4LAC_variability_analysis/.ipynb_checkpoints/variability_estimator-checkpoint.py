@@ -68,10 +68,10 @@ class Estimate_variability:
         self.normalized_excess_variance = excess_variance / F_av**2
         
         
-#         term1 = np.sqrt(2/n) * ( mse / (F_av**2) )
-#         term2 = np.sqrt(mse/n) * ( 2 / F_av )
+        term1 = np.sqrt(2/n) * ( mse / (F_av**2) )
+        term2 = np.sqrt(mse/n) * ( 2 / F_av )
         
-#         self.unc_normalized_excess_variance = np.sqrt( (term1)**2 + ( (term2)**2 * self.normalized_excess_variance) )
+        self.unc_normalized_excess_variance = np.sqrt( (term1)**2 + ( (term2)**2 * np.abs(self.normalized_excess_variance) ) )
 #         print('unc_normalized_excess_variance: ', self.unc_normalized_excess_variance)
         
         ##### Fractional Variability #####
@@ -86,10 +86,10 @@ class Estimate_variability:
         else:
             self.unc_frac_variability = np.sqrt( ( (factor1)**2 / self.normalized_excess_variance ) + (factor2)**2 )
         
-        term1 = np.sqrt(2/n) * ( mse / (F_av**2) )
-        term2 = np.sqrt(mse/n) * ( 2 * self.frac_variability / F_av )
+#         term1 = np.sqrt(2/n) * ( mse / (F_av**2) )
+#         term2 = np.sqrt(mse/n) * ( 2 * self.frac_variability / F_av )
         
-        self.unc_normalized_excess_variance = np.sqrt( (term1)**2 + ( (term2)**2 ) )
+#         self.unc_normalized_excess_variance = np.sqrt( (term1)**2 + ( (term2)**2 ) )
         
         # print('n: ', n)
         # print('s_squared: ', s_squared)
