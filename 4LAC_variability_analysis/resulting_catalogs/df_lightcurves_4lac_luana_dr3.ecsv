@@ -10,22 +10,22 @@
 # - {name: Unc_Frac_Variability, datatype: float32}
 # - {name: Spectrum_Flux_Estimated, datatype: float64}
 # - {name: Bright_Ratio_x, datatype: float64}
-# - {name: NEX_3days, datatype: float64}
-# - {name: Unc_NEX_3days, datatype: float64}
+# - {name: NXS_3days, datatype: float64}
+# - {name: Unc_NXS_3days, datatype: float64}
 # - {name: Fvar_3days, datatype: float64}
 # - {name: Unc_Fvar_3days, datatype: float64}
 # - {name: Bright_Ratio_y, datatype: float64}
-# - {name: NEX_weekly, datatype: float64}
-# - {name: Unc_NEX_weekly, datatype: float64}
+# - {name: NXS_weekly, datatype: float64}
+# - {name: Unc_NXS_weekly, datatype: float64}
 # - {name: Fvar_weekly, datatype: float64}
 # - {name: Unc_Fvar_weekly, datatype: float64}
 # - {name: Bright_Ratio, datatype: float64}
-# - {name: NEX_monthly, datatype: float64}
-# - {name: Unc_NEX_monthly, datatype: float64}
+# - {name: NXS_monthly, datatype: float64}
+# - {name: Unc_NXS_monthly, datatype: float64}
 # - {name: Fvar_monthly, datatype: float64}
 # - {name: Unc_Fvar_monthly, datatype: float64}
 # schema: astropy-2.0
-Source_Name SpectrumType CLASS SED_class Variability_Index Frac_Variability Unc_Frac_Variability Spectrum_Flux_Estimated Bright_Ratio_x NEX_3days Unc_NEX_3days Fvar_3days Unc_Fvar_3days Bright_Ratio_y NEX_weekly Unc_NEX_weekly Fvar_weekly Unc_Fvar_weekly Bright_Ratio NEX_monthly Unc_NEX_monthly Fvar_monthly Unc_Fvar_monthly
+Source_Name SpectrumType CLASS SED_class Variability_Index Frac_Variability Unc_Frac_Variability Spectrum_Flux_Estimated Bright_Ratio_x NXS_3days Unc_NXS_3days Fvar_3days Unc_Fvar_3days Bright_Ratio_y NXS_weekly Unc_NXS_weekly Fvar_weekly Unc_Fvar_weekly Bright_Ratio NXS_monthly Unc_NXS_monthly Fvar_monthly Unc_Fvar_monthly
 J0001.2-0747 PowerLaw bll LSP 46.780693 0.40656525 0.11186972 9.825298762067532e-09 "" "" "" "" "" "" "" "" "" "" 0.7383177570093458 -0.831175682263016 0.27798451702981575 0.0 0.1
 J0001.5+2113 LogParabola fsrq ISP 1910.9358 0.9961379 0.21347848 6.391698902983224e-08 "" "" "" "" "" "" "" "" "" "" 0.5537190082644629 2.3129040946772745 0.1305723539681703 1.52082349228215 0.04292817497585904
 J0003.3-1928 LogParabola bcu LSP 49.879936 0.5918794 0.15997198 3.7156805885832167e-09 "" "" "" "" "" "" "" "" "" "" "" "" "" "" ""
